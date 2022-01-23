@@ -96,42 +96,129 @@ namespace vrperfkit {
 			return;
 		}
 
-		ComPtr<ID3D11Resource> resource;
-		renderTargetViews[0]->GetResource( resource.GetAddressOf() );
-		D3D11_RENDER_TARGET_VIEW_DESC rtd;
-		renderTargetViews[0]->GetDesc( &rtd );
-		if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
-				&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
-			DisableVRS();
-			return;
-		}
-		ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
-		D3D11_TEXTURE2D_DESC td;
-		tex->GetDesc( &td );
+		static bool first = true;
+		for(int i = 0; i < numViews; ++i) {
 
-		if (td.Width == td.Height) {
-			// probably a shadow map or similar extra resources
-			DisableVRS();
-			return;
+			ComPtr<ID3D11Resource> resource;
+			renderTargetViews[i]->GetResource( resource.GetAddressOf() );
+			D3D11_RENDER_TARGET_VIEW_DESC rtd;
+			renderTargetViews[i]->GetDesc( &rtd );
+			if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+					&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
+				DisableVRS();
+				return;
+			}
+			ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+			D3D11_TEXTURE2D_DESC td;
+			tex->GetDesc( &td );
+			if (targetMode == TextureMode::SINGLE && td.Width >= 2 * targetWidth && td.Height >= targetHeight) {
+				ApplyCombinedVRS(td.Width, td.Height);
+			}
+			else if (targetMode == TextureMode::COMBINED && td.Width >= targetWidth && td.Height >= targetHeight) {
+				ApplyCombinedVRS(td.Width, td.Height);
+			}
+			else if (targetMode != TextureMode::COMBINED && td.ArraySize == 2 && td.Width >= targetWidth && td.Height >= targetHeight) {
+				ApplyArrayVRS(td.Width, td.Height);
+			}
+			else if (targetMode == TextureMode::SINGLE && td.ArraySize == 1 && td.Width >= targetWidth && td.Height >= targetHeight) {
+				if (first)
+					ApplySingleEyeVRS(0, td.Width, td.Height);
+				else
+					ApplySingleEyeVRS(1, td.Width, td.Height);
+				first = false;
+			}
 		}
+		
+		// ComPtr<ID3D11Resource> resource;
+		// renderTargetViews[0]->GetResource( resource.GetAddressOf() );
+		// D3D11_RENDER_TARGET_VIEW_DESC rtd;
+		// renderTargetViews[0]->GetDesc( &rtd );
+		// if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+		// 		&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
+		// 	DisableVRS();
+		// 	return;
+		// }
+		// ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+		// D3D11_TEXTURE2D_DESC td;
+		// tex->GetDesc( &td );
 
-		if (targetMode == TextureMode::SINGLE && td.Width >= 2 * targetWidth && td.Height >= targetHeight) {
-			ApplyCombinedVRS(td.Width, td.Height);
-		}
-		else if (targetMode == TextureMode::COMBINED && td.Width >= targetWidth && td.Height >= targetHeight) {
-			ApplyCombinedVRS(td.Width, td.Height);
-		}
-		else if (targetMode != TextureMode::COMBINED && td.ArraySize == 2 && td.Width >= targetWidth && td.Height >= targetHeight) {
-			ApplyArrayVRS(td.Width, td.Height);
-		}
-		else if (targetMode == TextureMode::SINGLE && td.ArraySize == 1 && td.Width >= targetWidth && td.Height >= targetHeight) {
-			// FIXME: how to guess the current eye?
-			LOG_DEBUG << "VRS: Single eye target, don't know which eye";
-			DisableVRS();
-		}
-		else {
-			DisableVRS();
-		}
+		// if (td.Width == td.Height) {
+		// 	// probably a shadow map or similar extra resources
+		// 	DisableVRS();
+		// 	return;
+		// }
+
+		// if (targetMode == TextureMode::SINGLE && td.Width >= 2 * targetWidth && td.Height >= targetHeight) {
+		// 	ApplyCombinedVRS(td.Width, td.Height);
+		// }
+		// else if (targetMode == TextureMode::COMBINED && td.Width >= targetWidth && td.Height >= targetHeight) {
+		// 	ApplyCombinedVRS(td.Width, td.Height);
+		// }
+		// else if (targetMode != TextureMode::COMBINED && td.ArraySize == 2 && td.Width >= targetWidth && td.Height >= targetHeight) {
+		// 	ApplyArrayVRS(td.Width, td.Height);
+		// }
+		// else if (targetMode == TextureMode::SINGLE && td.ArraySize == 1 && td.Width >= targetWidth && td.Height >= targetHeight) {
+		// 	// FIXME: how to guess the current eye?
+		// 	bool first = false;
+		// 	for(int i = 0; i < numViews; ++i) {
+
+		// 		ComPtr<ID3D11Resource> resource;
+		// 		renderTargetViews[i]->GetResource( resource.GetAddressOf() );
+		// 		D3D11_RENDER_TARGET_VIEW_DESC rtd;
+		// 		renderTargetViews[i]->GetDesc( &rtd );
+		// 		if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+		// 				&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
+		// 			DisableVRS();
+		// 			return;
+		// 		}
+		// 		ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+		// 		D3D11_TEXTURE2D_DESC td;
+		// 		tex->GetDesc( &td );
+		// 		if (targetMode == TextureMode::SINGLE && td.ArraySize == 1 && td.Width >= targetWidth && td.Height >= targetHeight) {
+		// 			if (first)
+		// 				ApplySingleEyeVRS(0, td.Width, td.Height);
+		// 			else
+		// 				ApplySingleEyeVRS(1, td.Width, td.Height);
+		// 			first = true;
+		// 		}
+		// 	}
+
+		// 	// We assume this is DCS
+		// 	// ComPtr<ID3D11Resource> resource;
+		// 	// renderTargetViews[195]->GetResource( resource.GetAddressOf() );
+		// 	// D3D11_RENDER_TARGET_VIEW_DESC rtd;
+		// 	// renderTargetViews[195]->GetDesc( &rtd );
+		// 	// if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+		// 	// 		&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
+		// 	// 	DisableVRS();
+		// 	// 	return;
+		// 	// }
+		// 	// ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+		// 	// D3D11_TEXTURE2D_DESC td;
+		// 	// tex->GetDesc( &td );
+		// 	// ApplySingleEyeVRS(0, td.Width, td.Height);
+
+		// 	// // Now the other eye
+		// 	// ComPtr<ID3D11Resource> resource;
+		// 	// renderTargetViews[216]->GetResource( resource.GetAddressOf() );
+		// 	// D3D11_RENDER_TARGET_VIEW_DESC rtd;
+		// 	// renderTargetViews[216]->GetDesc( &rtd );
+		// 	// if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+		// 	// 		&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
+		// 	// 	DisableVRS();
+		// 	// 	return;
+		// 	// }
+		// 	// ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+		// 	// D3D11_TEXTURE2D_DESC td;
+		// 	// tex->GetDesc( &td );
+		// 	// ApplySingleEyeVRS(1, td.Width, td.Height);
+
+		// 	// LOG_DEBUG << "VRS: Single eye target, don't know which eye";
+		// 	// DisableVRS();
+		// }
+		// else {
+		// 	DisableVRS();
+		// }
 	}
 
 	void D3D11VariableRateShading::ApplyCombinedVRS(int width, int height) {
