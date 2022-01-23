@@ -50,6 +50,7 @@ namespace vrperfkit {
 		void ApplyCombinedVRS(int width, int height);
 		void ApplyArrayVRS(int width, int height);
 		void ApplySingleEyeVRS(int eye, int width, int height);
+		void ApplySingleEyeCenteredVRS(int width, int height);
 
 		void SetupSingleEyeVRS(int eye, int width, int height, float projX, float projY);
 		void SetupCombinedVRS(int width, int height, float leftProjX, float leftProjY, float rightProjX, float rightProjY);
