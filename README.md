@@ -1,3 +1,11 @@
+# DISCLAIMER
+This is a modified version of fholger's awesome work on `vrperfkit`. The modifications are intended to provide a VERY JANKY implementation of Fixed Foveated Rendering using Variable Rate Shading (only on Nvidia's GTX16xx and RTX series) that is not natively available on fholger's original version.
+
+While I managed to fix the UI text issues (VRS was applied to it), I did not manage to separate the VRS implementation for each eye. Therefore, the foveated rendering is fixed at the center of the rendering area for each eyes.
+
+This works fine for large high resolution radii, it will lead to artifact when looking "toward your nose" at small radii. Moreover, THIS HAS ONLY BEEN TESTED ON DCS ON MY MACHINE.
+
+
 VR Performance Toolkit
 ======================
 
